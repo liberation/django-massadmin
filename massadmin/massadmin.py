@@ -85,6 +85,7 @@ class MassAdmin(admin.ModelAdmin):
         app_label = opts.app_label
         ordered_objects = opts.get_ordered_objects()
         context.update({
+            'admin_site': self.admin_site,
             'add': add,
             'change': change,
             'has_add_permission': self.has_add_permission(request),
@@ -153,16 +154,16 @@ class MassAdmin(admin.ModelAdmin):
                             form_validated = False
                             new_object = obj
 # Uncomment to enable inlines support (1) - Buggy! Use at your own risk
-#                        prefixes = {}
-#                        for FormSet in self.get_formsets(request, new_object):
-#                            prefix = FormSet.get_default_prefix()
-#                            prefixes[prefix] = prefixes.get(prefix, 0) + 1
-#                            if prefixes[prefix] != 1:
-#                                prefix = "%s-%s" % (prefix, prefixes[prefix])
-#                            mass_change_checkbox = '_mass_change_%s' % prefix
-#                            if request.POST.has_key(mass_change_checkbox) and request.POST[mass_change_checkbox] == 'on':
-#                                formset = FormSet(request.POST, request.FILES, instance=new_object, prefix=prefix)
-#                                formsets.append(formset)
+                        prefixes = {}
+                        for FormSet in self.get_formsets(request, new_object):
+                            prefix = FormSet.get_default_prefix()
+                            prefixes[prefix] = prefixes.get(prefix, 0) + 1
+                            if prefixes[prefix] != 1:
+                                prefix = "%s-%s" % (prefix, prefixes[prefix])
+                            mass_change_checkbox = '_mass_change_%s' % prefix
+                            if request.POST.has_key(mass_change_checkbox) and request.POST[mass_change_checkbox] == 'on':
+                                formset = FormSet(request.POST, request.FILES, instance=new_object, prefix=prefix)
+                                formsets.append(formset)
                         if all_valid(formsets) and form_validated:
                             self.save_model(request, new_object, form, change=True)
                             form.save_m2m()
@@ -205,12 +206,12 @@ class MassAdmin(admin.ModelAdmin):
             except: pass
         
         # Uncomment to enable inlines support (2) - Buggy! Use at your own risk
-        #inline_admin_formsets = []
-        #for inline, formset in zip(self.inline_instances, formsets):
-        #    fieldsets = list(inline.get_fieldsets(request, obj))
-        #    inline_admin_formset = helpers.InlineAdminFormSet(inline, formset, fieldsets)
-        #    inline_admin_formsets.append(inline_admin_formset)
-        #    media = media + inline_admin_formset.media
+        inline_admin_formsets = []
+        for inline, formset in zip(self.inline_instances, formsets):
+            fieldsets = list(inline.get_fieldsets(request))
+            inline_admin_formset = helpers.InlineAdminFormSet(inline, formset, fieldsets)
+            inline_admin_formsets.append(inline_admin_formset)
+            media = media + inline_admin_formset.media
             
         context = {
             'title': _('Change %s') % force_unicode(opts.verbose_name),
@@ -219,7 +220,7 @@ class MassAdmin(admin.ModelAdmin):
             'is_popup': request.REQUEST.has_key('_popup'),
             'media': mark_safe(media),
             # Uncomment to enable inlines support (3) - Buggy! Use at your own risk
-            #'inline_admin_formsets': inline_admin_formsets,
+            'inline_admin_formsets': inline_admin_formsets,
             'errors': helpers.AdminErrorList(form, formsets),
             'general_error': general_error,
             'root_path': self.admin_site.root_path,
@@ -227,4 +228,4 @@ class MassAdmin(admin.ModelAdmin):
             'object_ids': ",".join(object_ids),
         }
         context.update(extra_context or {})
-        return self.render_mass_change_form(request, context, change=True)
+        return self.render_mass_change_form(request, context, add=True)

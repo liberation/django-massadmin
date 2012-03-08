@@ -47,12 +47,10 @@
 
 {% block after_field_sets %}{% endblock %}
 
-<!-- Too unstable. Enable at your own risk
 {% for inline_admin_formset in inline_admin_formsets %}
     <input type="checkbox" name="_mass_change_{{ inline_admin_formset.formset.prefix }}"> {% trans "Mass Change" %}:
     {% include inline_admin_formset.opts.template %}
 {% endfor %}
--->
 
 {% block after_related_objects %}{% endblock %}
 
