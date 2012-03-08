@@ -108,6 +108,9 @@ class MassAdmin(admin.ModelAdmin):
             "admin/mass_change_form.html"
         ], context, context_instance=context_instance)
         
+    def get_mass_form(self, request, obj=None):
+        return self.get_form(request, obj)
+
     def mass_change_view(self, request, object_ids=None, extra_context=None):
         """The 'mass change' admin view for this model."""
         model = self.model
@@ -122,7 +125,7 @@ class MassAdmin(admin.ModelAdmin):
         if request.method == 'POST' and request.POST.has_key("_saveasnew"):
             return self.add_view(request, form_url='../add/')
 
-        ModelForm = self.get_form(request)
+        ModelForm = self.get_mass_form(request)
         formsets = []
         if request.method == 'POST':
             # commit only when all forms are valid
