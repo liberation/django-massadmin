@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 # Updates by David Burke <david@burkesoftware.com>
 # Orginal code used to be at http://algoholic.eu/django-mass-change-admin-site-extension/
 """
-Copyright (c) 2010, Stanislaw Adaszewski
+Copyright (c) 2010, Stanislaw Adaszewskin
+Copyright (c) 2012, Libération
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,7 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 from django.contrib import admin
-from django.conf.urls.defaults import *
+from django.conf.urls.defaults import patterns, url
+from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from django.db import transaction, models
 from django.contrib.admin.util import unquote
@@ -47,49 +50,35 @@ from django.forms.formsets import all_valid
 
 import sys
 
-urls = patterns('',
-    (r'(?P<app_name>[^/])/(?P<model_name>[^/]+)-masschange/(?P<object_ids>[0-9,]+)/$', 'massadmin.massadmin.mass_change_view'),
-)
-
-def redirect_to_admin(request, whatever):
-    return redirect_to(request, url = 'admin/%s' % whatever)
-
-#noinspection PyUnusedLocal
-def mass_change_selected(modeladmin, request, queryset):
-    # print request.POST
-    selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
-    return redirect_to(request, url = '../%s-masschange/%s' % (modeladmin.model._meta.module_name, ','.join(selected)))
-mass_change_selected.short_description = u'Mass Edit'
-
-def mass_change_view(request, app_name, model_name, object_ids):
-    model = models.get_model(app_name, model_name)
-    ma = MassAdmin(model, admin.site)
-    return ma.mass_change_view(request, object_ids)
-
-#noinspection PyRedeclaration
-mass_change_view = staff_member_required(mass_change_view)
-
 class MassAdmin(admin.ModelAdmin):
-    def __init__(self, model, admin_site):
-        try:
-            self.admin_obj = admin_site._registry[model]
-        except KeyError:
-            raise Exception('Model not registered with the admin site.')
-        for (varname, var) in self.admin_obj.__class__.__dict__.iteritems():
-            if not (varname.startswith('_') or callable(var)):
-                self.__dict__[varname] = var
-        super(MassAdmin, self).__init__(model, admin_site)
-                        		
-    def response_change(self, request, obj):
-        """
-        Determines the HttpResponse for the change_view stage.
-        """
+    actions = ['mass_change_selected']
+    mass_change_form_template = None
+
+    def get_urls(self):
+        urls = super(MassAdmin, self).get_urls()
+        info = self.model._meta.app_label, self.model._meta.module_name
+        custom_urls = patterns('',
+            url(r'^masschange/(?P<object_ids>[0-9,]+)/$',
+                self.admin_site.admin_view(self.mass_change_view),
+                name='%s_%s_massadmin' % info)
+        )
+        return custom_urls + urls
+
+    def mass_change_selected(self, request, queryset):
+        selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
+        info = self.model._meta.app_label, self.model._meta.module_name
+        selected = ','.join(selected)
+        massadmin_url = reverse('admin:%s_%s_massadmin' % info, args=(selected,), current_app=self.admin_site.name)
+
+        return redirect_to(request, url=massadmin_url)
+    mass_change_selected.short_description = _('Mass change selected')
+
+    def response_mass_change(self, request, obj):
         opts = obj._meta
-
         msg = _('Selected %(name)s were changed successfully.') % {'name': force_unicode(opts.verbose_name_plural), 'obj': force_unicode(obj)}
-
         self.message_user(request, msg)
-        return HttpResponseRedirect("../../%s/" % self.model._meta.module_name)
+
+        return HttpResponseRedirect("../../")
                         		
     def render_mass_change_form(self, request, context, add=False, change=False, form_url='', obj=None):
         opts = self.model._meta
@@ -113,37 +102,27 @@ class MassAdmin(admin.ModelAdmin):
             'onclick_attrib': (opts.get_ordered_objects() and change and 'onclick="submitOrderForm();"' or ''),
         })
         context_instance = template.RequestContext(request, current_app=self.admin_site.name)
-        return render_to_response(self.change_form_template or [
+        return render_to_response(self.mass_change_form_template or [
             "admin/%s/%s/mass_change_form.html" % (app_label, opts.object_name.lower()),
             "admin/%s/mass_change_form.html" % app_label,
             "admin/mass_change_form.html"
         ], context, context_instance=context_instance)
         
-    def mass_change_view(self, request, comma_separated_object_ids, extra_context=None):
+    def mass_change_view(self, request, object_ids=None, extra_context=None):
         """The 'mass change' admin view for this model."""
-        global new_object
         model = self.model
         opts = model._meta
         general_error = None
                         		
-        object_ids = comma_separated_object_ids.split(',')
-        object_id = object_ids[0]
+        object_ids = object_ids.split(',')
 
-        try:
-            obj = self.queryset(request).get(pk=unquote(object_id))
-        except model.DoesNotExist:
-            obj = None
-
-        if not self.has_change_permission(request, obj):
+        if not self.has_change_permission(request, None): # FIXME: use a specific permission for mass_change
             raise PermissionDenied
-
-        if obj is None:
-            raise Http404(_('%(name)s object with primary key %(key)r does not exist.') % {'name': force_unicode(opts.verbose_name), 'key': escape(object_id)})
 
         if request.method == 'POST' and request.POST.has_key("_saveasnew"):
             return self.add_view(request, form_url='../add/')
 
-        ModelForm = self.get_form(request, obj)
+        ModelForm = self.get_form(request)
         formsets = []
         if request.method == 'POST':
             # commit only when all forms are valid
@@ -170,20 +149,19 @@ class MassAdmin(admin.ModelAdmin):
                         else:
                             form_validated = False
                             new_object = obj
-                        prefixes = {}
-                        for FormSet in self.get_formsets(request, new_object):
-                            prefix = FormSet.get_default_prefix()
-                            prefixes[prefix] = prefixes.get(prefix, 0) + 1
-                            if prefixes[prefix] != 1:
-                                prefix = "%s-%s" % (prefix, prefixes[prefix])
-                            mass_change_checkbox = '_mass_change_%s' % prefix
-                            if request.POST.has_key(mass_change_checkbox) and request.POST[mass_change_checkbox] == 'on':
-                                formset = FormSet(request.POST, request.FILES, instance=new_object, prefix=prefix)
-                                formsets.append(formset)
-                                
+# Uncomment to enable inlines support (1) - Buggy! Use at your own risk
+#                        prefixes = {}
+#                        for FormSet in self.get_formsets(request, new_object):
+#                            prefix = FormSet.get_default_prefix()
+#                            prefixes[prefix] = prefixes.get(prefix, 0) + 1
+#                            if prefixes[prefix] != 1:
+#                                prefix = "%s-%s" % (prefix, prefixes[prefix])
+#                            mass_change_checkbox = '_mass_change_%s' % prefix
+#                            if request.POST.has_key(mass_change_checkbox) and request.POST[mass_change_checkbox] == 'on':
+#                                formset = FormSet(request.POST, request.FILES, instance=new_object, prefix=prefix)
+#                                formsets.append(formset)
                         if all_valid(formsets) and form_validated:
-                            self.admin_obj.save_model(request, new_object, form, change=True)
-                            # self.save_model(request, new_object, form, change=True)
+                            self.save_model(request, new_object, form, change=True)
                             form.save_m2m()
                             for formset in formsets:
                                 self.save_formset(request, form, formset, change=True)
@@ -195,23 +173,23 @@ class MassAdmin(admin.ModelAdmin):
                     if changed_count != objects_count:
                         raise Exception('Some of the selected objects could\'t be changed.')
                     transaction.commit()    
-                    return self.response_change(request, new_object)
+                    return self.response_mass_change(request, new_object)
                     
                 finally:
                     general_error = unicode(sys.exc_info()[1])
                     transaction.rollback()
                     
-        form = ModelForm(instance=obj)
+        form = ModelForm()
         prefixes = {}
-        for FormSet in self.get_formsets(request, obj):
+        for FormSet in self.get_formsets(request):
             prefix = FormSet.get_default_prefix()
             prefixes[prefix] = prefixes.get(prefix, 0) + 1
             if prefixes[prefix] != 1:
                 prefix = "%s-%s" % (prefix, prefixes[prefix])
-            formset = FormSet(instance=obj, prefix=prefix)
+            formset = FormSet(prefix=prefix)
             formsets.append(formset)
-            
-        adminForm = helpers.AdminForm(form, self.get_fieldsets(request, obj), self.prepopulated_fields, self.get_readonly_fields(request, obj))
+
+        adminForm = helpers.AdminForm(form, self.get_fieldsets(request), self.prepopulated_fields, self.get_readonly_fields(request))
         media = self.media + adminForm.media
         
         # We don't want the user trying to mass change unique fields!
@@ -223,7 +201,7 @@ class MassAdmin(admin.ModelAdmin):
                     unique_fields.append(field_name)
             except: pass
         
-        # Buggy! Use at your own risk
+        # Uncomment to enable inlines support (2) - Buggy! Use at your own risk
         #inline_admin_formsets = []
         #for inline, formset in zip(self.inline_instances, formsets):
         #    fieldsets = list(inline.get_fieldsets(request, obj))
@@ -234,17 +212,16 @@ class MassAdmin(admin.ModelAdmin):
         context = {
             'title': _('Change %s') % force_unicode(opts.verbose_name),
             'adminform': adminForm,
-            'object_id': object_id,
-            'original': obj,
             'unique_fields': unique_fields,
             'is_popup': request.REQUEST.has_key('_popup'),
             'media': mark_safe(media),
+            # Uncomment to enable inlines support (3) - Buggy! Use at your own risk
             #'inline_admin_formsets': inline_admin_formsets,
             'errors': helpers.AdminErrorList(form, formsets),
             'general_error': general_error,
             'root_path': self.admin_site.root_path,
             'app_label': opts.app_label,
-            'object_ids': comma_separated_object_ids,
+            'object_ids': ",".join(object_ids),
         }
         context.update(extra_context or {})
-        return self.render_mass_change_form(request, context, change=True, obj=obj)
+        return self.render_mass_change_form(request, context, change=True)
