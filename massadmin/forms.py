@@ -16,18 +16,23 @@ CHARFIELD_ACTIONS = Choices(
 
 class MassOptionsForField(forms.Form):
     """
-    A dynamic form that displays mass change options for a given model field.
+    A dynamic form that displays mass change options for a given model field
+    (or model inline).
 
-    In most common case, it just generates a checkbox to enable user
-    to choose whether or not he wants to handle mass change of this given field.
+    In most case, it just generates a checkbox to allow user
+    to choose whether or not he wants to handle mass change of this given
+    field.
     If given field is a CharField and its widget is not
     a sub-instance of MultiWidget, expose more advanced options like
     'prepend', 'append', 'empty', etc.
+
+    Note: it also works for inlines. In that case, only `field_name` is given
+    in the extra kwargs.
     """
     CHARFIELD_ACTIONS = CHARFIELD_ACTIONS
     def __init__(self, *args, **kwargs):
         self.model_field_name = kwargs.pop('field_name')
-        self.model_field = kwargs.pop('field')
+        self.model_field = kwargs.pop('field', None)
         super(MassOptionsForField, self).__init__(*args, **kwargs)
 
         mass_field_name = self.get_mass_field_name()
@@ -35,9 +40,12 @@ class MassOptionsForField(forms.Form):
         # Always create an "activate" checkbox
         self.fields[mass_field_name] = forms.BooleanField(required=False)
 
-        # According to field type and widget, optionally create mass options field
-        if isinstance(self.model_field, forms.CharField) and not isinstance(self.model_field.widget, widgets.MultiWidget):
-            self.fields[mass_field_name + '_action'] = forms.ChoiceField(choices=CHARFIELD_ACTIONS)
+        if self.model_field is not None:
+            # If a real field has been given (i.e. not an inline), optionally
+            # add mass change options (prepend, append, etc.) according
+            # to field type and field widget
+            if isinstance(self.model_field, forms.CharField) and not isinstance(self.model_field.widget, widgets.MultiWidget):
+                self.fields[mass_field_name + '_action'] = forms.ChoiceField(choices=CHARFIELD_ACTIONS)
 
     def get_mass_field_name(self):
         return '_mass_change_' + self.model_field_name

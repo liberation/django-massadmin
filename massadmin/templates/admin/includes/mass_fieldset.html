@@ -36,7 +36,7 @@
         {% else %}
           <div class="row module {% if not line.fields|length_is:"1" %}field-box{% endif %}">
             <div class="column span-3">
-                {% render_mass_options_for_field field.field.field field.field.name %}
+                {% render_mass_options_for_field field.field.name field.field.field %}
             </div>
             <div class="column span-flexible">
               {% if field.is_checkbox %}

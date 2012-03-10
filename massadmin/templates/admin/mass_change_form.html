@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load i18n admin_modify adminmedia %}
+{% load i18n admin_modify adminmedia massadmin_tags %}
 {% load truncchar %}
 
 {% block extrahead %}{{ block.super }}
@@ -48,7 +48,7 @@
 {% block after_field_sets %}{% endblock %}
 
 {% for inline_admin_formset in inline_admin_formsets %}
-    <input type="checkbox" name="_mass_change_{{ inline_admin_formset.formset.prefix }}"> {% trans "Mass Change" %}:
+    {% trans "Mass Change" %}: {% render_mass_options_for_field inline_admin_formset.formset.prefix %}
     {% include inline_admin_formset.opts.template %}
 {% endfor %}
 

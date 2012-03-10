@@ -206,10 +206,20 @@ class MassAdmin(admin.ModelAdmin):
                             prefixes[prefix] = prefixes.get(prefix, 0) + 1
                             if prefixes[prefix] != 1:
                                 prefix = "%s-%s" % (prefix, prefixes[prefix])
-                            mass_change_checkbox = '_mass_change_%s' % prefix
-                            if request.POST.has_key(mass_change_checkbox) and request.POST[mass_change_checkbox] == 'on':
-                                formset = FormSet(request.POST, request.FILES, instance=new_object, prefix=prefix)
-                                formsets.append(formset)
+                                
+                            # Check if inline formset has been selected for
+                            # mass change. If it is the case, store it
+                            # for later use
+                            mass_options_form = MassOptionsForField(data=request.POST, field_name=prefix)
+                            if mass_options_form.is_valid():
+                                mass_field_name = mass_options_form.get_mass_field_name()
+                                handle_mass_change = mass_options_form.cleaned_data.get(mass_field_name, False)
+                                if handle_mass_change:
+                                    formset = FormSet(request.POST, request.FILES, instance=new_object, prefix=prefix)
+                                    formsets.append(formset)
+                            else:
+                                raise Exception('Mass options for inline %s are not valid: %s' % (prefix, mass_options_form.errors))
+
                         if all_valid(formsets) and form_validated:
                             self.save_model(request, new_object, form, change=True)
                             form.save_m2m()
