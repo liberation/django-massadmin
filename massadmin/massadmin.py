@@ -29,6 +29,8 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+from copy import deepcopy
+
 from django.contrib import admin
 from django.conf.urls.defaults import patterns, url
 from django.core.urlresolvers import reverse
@@ -47,6 +49,8 @@ from django import  template
 from django.shortcuts import render_to_response
 from django.views.generic.simple import redirect_to
 from django.forms.formsets import all_valid
+
+from forms import MassOptionsForField
 
 import sys
 
@@ -129,23 +133,65 @@ class MassAdmin(admin.ModelAdmin):
         ModelForm = self.get_mass_form(request)
         formsets = []
         if request.method == 'POST':
+
+            # Store which fields are handled on this mass change.
+            # Also, store optionnal mass actions (replace, preprend,
+            # append, etc.) on those fields.
+            # FIXME: doing this on ModelForm *class*'s base_fields saves us
+            # from doing it for each form, but on the other hand,
+            # form.__init__ could change some fields or widget at instanciation
+            # time... We should move back this work inside looping of each form,
+            # but trying to do it only once...
+            exclude_fields = []
+            special_handled_fields = {}  # format -- {'<field name>': '<action>'}
+            for fieldname, field in ModelForm.base_fields.items():
+                mass_options_form = MassOptionsForField(data=request.POST, field=field, field_name=fieldname)
+                if mass_options_form.is_valid():
+                    mass_field_name = mass_options_form.get_mass_field_name()
+                    handle_mass_change = mass_options_form.cleaned_data.get(mass_field_name, False)
+                    if handle_mass_change:
+                        action = mass_options_form.cleaned_data.get(mass_field_name + '_action', None)
+                        if action:
+                            special_handled_fields[fieldname] = action
+                    else:
+                        exclude_fields.append(fieldname)
+                else:
+                    raise Exception('Mass options for field %s are not valid: %s ' % (fieldname, mass_options_form.errors))
+            
             # commit only when all forms are valid
             with transaction.commit_manually():
                 try:
                     objects_count = 0
                     changed_count = 0
+
                     objects = self.queryset(request).filter(pk__in = object_ids)
                     for obj in objects:
                         objects_count += 1
                         form = ModelForm(request.POST, request.FILES, instance=obj)
-                        
-                        exclude = []
-                        for fieldname, field in form.fields.items():
-                            mass_change_checkbox = '_mass_change_%s' % fieldname
-                            if not (request.POST.has_key(mass_change_checkbox) and request.POST[mass_change_checkbox] == 'on'):
-                                exclude.append(fieldname)
-                        for exclude_fieldname in exclude:
-                            del form.fields[exclude_fieldname]
+
+                        for fieldname in exclude_fields:
+                            del form.fields[fieldname]
+
+                        if special_handled_fields:
+                            # If there are some fields that need special
+                            # action (prepend, append, etc.), make a deepcopy
+                            # of POST data and alter it accordingly *before*
+                            # calling ModelForm.is_valid() (which is
+                            # responsible for *using* and cleaning POST data)
+                            form.data = deepcopy(form.data)
+                            for fieldname, action in special_handled_fields.items():
+                                ACTIONS = MassOptionsForField.CHARFIELD_ACTIONS
+                                if action == ACTIONS.PREPEND:
+                                    form.data[fieldname] = form.data[fieldname] + getattr(obj, fieldname, '')
+                                elif action == ACTIONS.APPEND:
+                                    form.data[fieldname] = getattr(obj, fieldname, '') + form.data[fieldname]
+                                elif action == ACTIONS.DEFINE:
+                                    if getattr(obj, fieldname, ''):
+                                        # if obj has already a value for this
+                                        # field, don't handle mass change for it
+                                        del form.fields[fieldname]
+                                elif action == ACTIONS.REPLACE:
+                                    pass # replace is the default action
                             
                         if form.is_valid():
                             form_validated = True

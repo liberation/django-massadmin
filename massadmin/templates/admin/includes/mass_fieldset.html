@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n massadmin_tags %}
 
 <fieldset class="module aligned {{ fieldset.classes }}">
   {% if fieldset.name %}<h2>{{ fieldset.name }} Mass Edit</h2>{% endif %}
@@ -36,7 +36,7 @@
         {% else %}
           <div class="row module {% if not line.fields|length_is:"1" %}field-box{% endif %}">
             <div class="column span-3">
-              <input type="checkbox" name="_mass_change_{{ field.field.name }}" />
+                {% render_mass_options_for_field field.field.field field.field.name %}
             </div>
             <div class="column span-flexible">
               {% if field.is_checkbox %}
