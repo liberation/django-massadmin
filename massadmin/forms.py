@@ -42,8 +42,8 @@ class MassOptionsForField(forms.Form):
 
         if self.model_field is not None:
             # If a real field has been given (i.e. not an inline), optionally
-            # add mass change options (prepend, append, etc.) if
-            # to field type and field widget allow it
+            # add mass change options (prepend, append, etc.) according
+            # to field type and field widget
             if isinstance(self.model_field, forms.CharField) and not isinstance(self.model_field.widget, widgets.MultiWidget):
                 # If field is a CharField subclass and its widget is not a
                 # MultiWidget subclass, we can assume there will be *only one*
