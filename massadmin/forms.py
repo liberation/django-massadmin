@@ -38,7 +38,7 @@ class MassOptionsForField(forms.Form):
         mass_field_name = self.get_mass_field_name()
 
         # Always create an "activate mass change" checkbox
-        self.fields[mass_field_name] = forms.BooleanField(required=False)
+        self.fields[mass_field_name] = forms.BooleanField(required=False, label=_('Mass change'))
 
         if self.model_field is not None:
             # If a real field has been given (i.e. not an inline), optionally
@@ -50,7 +50,7 @@ class MassOptionsForField(forms.Form):
                 # key for this field in POST data. We will then be able to
                 # alter it dynamically (as a raw string) *before*
                 # submitting it to ModelForm.
-                self.fields[mass_field_name + '_action'] = forms.ChoiceField(choices=CHARFIELD_ACTIONS)
+                self.fields[mass_field_name + '_action'] = forms.ChoiceField(choices=CHARFIELD_ACTIONS, label=_('Advanced operations'))
 
     def get_mass_field_name(self):
         return '_mass_change_' + self.model_field_name
