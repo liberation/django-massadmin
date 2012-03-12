@@ -42,6 +42,7 @@ from django.contrib.admin import helpers
 from django.utils.translation import ugettext as _
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
+from django.template.defaultfilters import pluralize
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import Http404, HttpResponseRedirect
 from django.utils.html import escape
@@ -274,9 +275,10 @@ class MassAdmin(admin.ModelAdmin):
             inline_admin_formset = helpers.InlineAdminFormSet(inline, formset, fieldsets)
             inline_admin_formsets.append(inline_admin_formset)
             media = media + inline_admin_formset.media
-            
+
+        n_objects = len(object_ids)
         context = {
-            'title': _('Change %s') % force_unicode(opts.verbose_name),
+            'title': _('Mass change of %s %s%s') % (n_objects, force_unicode(opts.verbose_name), pluralize(n_objects)),
             'adminform': adminForm,
             'unique_fields': unique_fields,
             'is_popup': request.REQUEST.has_key('_popup'),
