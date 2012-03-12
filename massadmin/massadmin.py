@@ -36,16 +36,13 @@ from django.contrib import admin
 from django.conf.urls.defaults import patterns, url
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
-from django.db import transaction, models
-from django.contrib.admin.util import unquote
+from django.db import transaction
 from django.contrib.admin import helpers
 from django.utils.translation import ugettext as _
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from django.template.defaultfilters import pluralize
-from django.contrib.admin.views.decorators import staff_member_required
-from django.http import Http404, HttpResponseRedirect
-from django.utils.html import escape
+from django.http import HttpResponseRedirect
 from django.contrib.contenttypes.models import ContentType
 from django import  template
 from django.shortcuts import render_to_response
@@ -91,24 +88,19 @@ class MassAdmin(admin.ModelAdmin):
 
         return HttpResponseRedirect(next)
                         		
-    def render_mass_change_form(self, request, context, add=False, change=False, form_url='', obj=None):
+    def render_mass_change_form(self, request, context, obj=None):
         opts = self.model._meta
         app_label = opts.app_label
         ordered_objects = opts.get_ordered_objects()
         context.update({
             'admin_site': self.admin_site,
-            'add': add,
-            'change': change,
+            'add': True,
             'has_add_permission': self.has_add_permission(request),
             'has_change_permission': self.has_change_permission(request, obj),
             'has_delete_permission': self.has_delete_permission(request, obj),
             'has_file_field': True,
-            'has_absolute_url': hasattr(self.model, 'get_absolute_url'),
             'ordered_objects': ordered_objects,
-            'form_url': mark_safe(form_url),
             'opts': opts,
-            'content_type_id': ContentType.objects.get_for_model(self.model).id,
-            'save_as': self.save_as,
             'save_on_top': self.save_on_top,
             'root_path': self.admin_site.root_path,
             'onclick_attrib': (opts.get_ordered_objects() and change and 'onclick="submitOrderForm();"' or ''),
@@ -133,9 +125,6 @@ class MassAdmin(admin.ModelAdmin):
 
         if not self.has_change_permission(request, None): # FIXME: use a specific permission for mass_change
             raise PermissionDenied
-
-        if request.method == 'POST' and request.POST.has_key("_saveasnew"):
-            return self.add_view(request, form_url='../add/')
 
         ModelForm = self.get_mass_form(request)
         formsets = []
@@ -206,7 +195,7 @@ class MassAdmin(admin.ModelAdmin):
                         else:
                             form_validated = False
                             new_object = obj
-# Uncomment to enable inlines support (1) - Buggy! Use at your own risk
+
                         prefixes = {}
                         for FormSet in self.get_formsets(request, new_object):
                             prefix = FormSet.get_default_prefix()
@@ -268,7 +257,6 @@ class MassAdmin(admin.ModelAdmin):
                     unique_fields.append(field_name)
             except: pass
         
-        # Uncomment to enable inlines support (2) - Buggy! Use at your own risk
         inline_admin_formsets = []
         for inline, formset in zip(self.inline_instances, formsets):
             fieldsets = list(inline.get_fieldsets(request))
@@ -283,7 +271,6 @@ class MassAdmin(admin.ModelAdmin):
             'unique_fields': unique_fields,
             'is_popup': request.REQUEST.has_key('_popup'),
             'media': mark_safe(media),
-            # Uncomment to enable inlines support (3) - Buggy! Use at your own risk
             'inline_admin_formsets': inline_admin_formsets,
             'errors': helpers.AdminErrorList(form, formsets),
             'general_error': general_error,
@@ -292,4 +279,4 @@ class MassAdmin(admin.ModelAdmin):
             'object_ids': ",".join(object_ids),
         }
         context.update(extra_context or {})
-        return self.render_mass_change_form(request, context, add=True)
+        return self.render_mass_change_form(request, context)
