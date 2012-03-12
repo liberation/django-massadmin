@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 from copy import deepcopy
+import urllib
 
 from django.contrib import admin
 from django.conf.urls.defaults import patterns, url
@@ -47,7 +48,6 @@ from django.utils.html import escape
 from django.contrib.contenttypes.models import ContentType
 from django import  template
 from django.shortcuts import render_to_response
-from django.views.generic.simple import redirect_to
 from django.forms.formsets import all_valid
 
 from forms import MassOptionsForField
@@ -74,7 +74,11 @@ class MassAdmin(admin.ModelAdmin):
         selected = ','.join(selected)
         massadmin_url = reverse('admin:%s_%s_massadmin' % info, args=(selected,), current_app=self.admin_site.name)
 
-        return redirect_to(request, url=massadmin_url)
+        next = urllib.quote(request.get_full_path())
+
+        massadmin_url = '%s?next=%s' % (massadmin_url, next)
+
+        return HttpResponseRedirect(massadmin_url)
     mass_change_selected.short_description = _('Mass change selected')
 
     def response_mass_change(self, request, obj):
@@ -82,7 +86,9 @@ class MassAdmin(admin.ModelAdmin):
         msg = _('Selected %(name)s were changed successfully.') % {'name': force_unicode(opts.verbose_name_plural), 'obj': force_unicode(obj)}
         self.message_user(request, msg)
 
-        return HttpResponseRedirect("../../")
+        next = request.GET.get('next', '../../')
+
+        return HttpResponseRedirect(next)
                         		
     def render_mass_change_form(self, request, context, add=False, change=False, form_url='', obj=None):
         opts = self.model._meta
