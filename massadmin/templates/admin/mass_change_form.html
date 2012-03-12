@@ -1,6 +1,5 @@
 {% extends "admin/base_site.html" %}
 {% load i18n admin_modify adminmedia massadmin_tags %}
-{% load truncchar %}
 
 {% block extrahead %}{{ block.super }}
 <script type="text/javascript" src="../../../jsi18n/"></script>
@@ -18,7 +17,7 @@
      <a href="../../../">{% trans "Home" %}</a> &rsaquo;
      <a href="../../">{{ app_label|capfirst|escape }}</a> &rsaquo; 
      {% if has_change_permission %}<a href="../../{{ opts.object_name.lower }}/">{{ opts.verbose_name_plural|capfirst }}</a>{% else %}{{ opts.verbose_name_plural|capfirst }}{% endif %} &rsaquo; 
-     {% if add %}{% trans "Add" %} {{ opts.verbose_name }}{% else %}{{ object_ids|truncchar:50 }}{% endif %}
+     {% trans "Mass change" %} {{ opts.verbose_name }}
 </div>
 {% endif %}{% endblock %}
 
