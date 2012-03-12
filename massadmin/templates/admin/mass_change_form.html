@@ -65,4 +65,26 @@
 
 </div>
 </form></div>
+
+<script type="text/javascript">
+    /*
+    * Hide/display advanced mass options (prepend, append, etc.)
+    * according to mass change's checkbox status for each field.
+    */
+    (function($) {
+        $(document).ready( function($) {
+            var mass_fields_cont = $('.js-mass-options');
+            var advanced_select = mass_fields_cont.find('select').hide();
+            mass_fields_cont.find('input[type=checkbox]').bind('click', function() {
+                var $checkbox = $(this);
+                if($checkbox.attr('checked')) {
+                    advanced_select.show();
+                } else {
+                    advanced_select.hide();
+                }
+            });
+        });
+    })(django.jQuery);
+
+</script>
 {% endblock %}
