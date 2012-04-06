@@ -266,7 +266,7 @@ class MassAdmin(admin.ModelAdmin):
 
         n_objects = len(object_ids)
         context = {
-            'title': _('Mass change of %s %s%s') % (n_objects, force_unicode(opts.verbose_name), pluralize(n_objects)),
+            'title': _('Mass change of %(n_objects)s %(verbose_name)s%(plural)s') % {'n_objects': n_objects, 'verbose_name': force_unicode(opts.verbose_name), 'plural': pluralize(n_objects)},
             'adminform': adminForm,
             'unique_fields': unique_fields,
             'is_popup': request.REQUEST.has_key('_popup'),

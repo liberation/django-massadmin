@@ -1,0 +1,78 @@
+# Yohan Boniface <y.boniface@liberation.fr>, 2012.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-04-06 15:34+0200\n"
+"PO-Revision-Date: 2012-04-06 15:36+0200\n"
+"Last-Translator: Yohan Boniface <y.boniface@liberation.fr>\n"
+"Language-Team: French\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: forms.py:10
+msgid "Define (if empty)"
+msgstr "Définir (si vide)"
+
+#: forms.py:11
+msgid "Replace"
+msgstr "Remplacer"
+
+#: forms.py:12
+msgid "Add before"
+msgstr "Ajouter avant"
+
+#: forms.py:13
+msgid "Add after"
+msgstr "Ajouter après"
+
+#: forms.py:41 templates/admin/mass_change_form.html:20
+msgid "Mass change"
+msgstr "Édition multiple"
+
+#: forms.py:53
+msgid "Advanced operations"
+msgstr "Opérations avancées"
+
+#: massadmin.py:80
+msgid "Mass change selected"
+msgstr "Édition multiple sélectionnée"
+
+#: massadmin.py:84
+#, python-format
+msgid "Selected %(name)s were changed successfully."
+msgstr "Les %(name)s sélectionné(e)s ont été modifiés avec succès."
+
+#: massadmin.py:269
+#, python-format
+msgid "Mass change of %(n_objects)s %(verbose_name)s%(plural)s"
+msgstr "Édition de masse de %(n_objects)s %(verbose_name)s%(plural)s"
+
+#: templates/admin/mass_change_form.html:17
+msgid "Home"
+msgstr "Accueil"
+
+#: templates/admin/mass_change_form.html:32
+msgid "Please correct the error below."
+msgid_plural "Please correct the errors below."
+msgstr[0] "Merci de corriger l'erreur suivante"
+msgstr[1] "Merci de corriger les erreurs suivantes"
+
+#: templates/admin/mass_change_form.html:44
+msgid "Mass Change"
+msgstr "Édition multiple"
+
+#: templates/admin/save_only_submit_line.html:3
+msgid "Save"
+msgstr "Enregistrer"
+
+#: templates/admin/includes/mass_fieldset.html:19
+msgid "is read only."
+msgstr "est en lecture seule."
+
+#: templates/admin/includes/mass_fieldset.html:26
+msgid "must be unique."
+msgstr "doit être unique."
