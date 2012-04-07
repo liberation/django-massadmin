@@ -39,7 +39,7 @@ msgstr "Opérations avancées"
 
 #: massadmin.py:80
 msgid "Mass change selected"
-msgstr "Édition multiple sélectionnée"
+msgstr "Édition multiple"
 
 #: massadmin.py:84
 #, python-format
