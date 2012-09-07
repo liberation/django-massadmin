@@ -169,39 +169,7 @@ class MassAdmin(admin.ModelAdmin):
                         for fieldname in exclude_fields:
                             del form.fields[fieldname]
 
-                        if special_handled_fields:
-                            # If there are some fields that need special
-                            # action (prepend, append, etc.), make a deepcopy
-                            # of POST data and alter it accordingly *before*
-                            # calling ModelForm.is_valid() (which is
-                            # responsible for *using* and cleaning POST data)
-                            form.data = deepcopy(form.data)
-                            for fieldname, action in special_handled_fields.items():
-                                if isinstance(obj._meta.get_field_by_name(fieldname)[0], models.ManyToManyField):
-                                    ACTIONS = MassOptionsForField.MULTI_ACTIONS
-                                    if action == ACTIONS.ADD:
-                                        for val in form.initial[fieldname]:
-                                            val = unicode(val)  # Form values are always string, not int
-                                            if not val in form.data.getlist(fieldname):
-                                                form.data.appendlist(fieldname, val)
-                                    elif action == ACTIONS.DEFINE:
-                                        if getattr(obj, fieldname).all():
-                                            del form.fields[fieldname]
-                                    elif action == ACTIONS.REPLACE:
-                                        pass  # replace is the default action
-                                else:
-                                    ACTIONS = MassOptionsForField.CHARFIELD_ACTIONS
-                                    if action == ACTIONS.PREPEND:
-                                        form.data[fieldname] = form.data[fieldname] + getattr(obj, fieldname, '')
-                                    elif action == ACTIONS.APPEND:
-                                        form.data[fieldname] = getattr(obj, fieldname, '') + form.data[fieldname]
-                                    elif action == ACTIONS.DEFINE:
-                                        if getattr(obj, fieldname, ''):
-                                            # if obj has already a value for this
-                                            # field, don't handle mass change for it
-                                            del form.fields[fieldname]
-                                    elif action == ACTIONS.REPLACE:
-                                        pass  # replace is the default action
+                        self._handle_fields_action(form, obj, special_handled_fields)
 
                         if form.is_valid():
                             form_validated = True
@@ -295,3 +263,40 @@ class MassAdmin(admin.ModelAdmin):
         }
         context.update(extra_context or {})
         return self.render_mass_change_form(request, context)
+
+    def _handle_fields_action(self, form, obj, special_handled_fields):
+        """
+        If there are some fields that need special
+        action (prepend, append, etc.), make a deepcopy
+        of POST data and alter it accordingly *before*
+        calling ModelForm.is_valid() (which is
+        responsible for *using* and cleaning POST data).
+        """
+        if special_handled_fields:
+            form.data = deepcopy(form.data)
+            for fieldname, action in special_handled_fields.items():
+                if isinstance(obj._meta.get_field_by_name(fieldname)[0], models.ManyToManyField):
+                    ACTIONS = MassOptionsForField.MULTI_ACTIONS
+                    if action == ACTIONS.ADD:
+                        for val in form.initial[fieldname]:
+                            val = unicode(val)  # Form values are always string, not int
+                            if not val in form.data.getlist(fieldname):
+                                form.data.appendlist(fieldname, val)
+                    elif action == ACTIONS.DEFINE:
+                        if getattr(obj, fieldname).all():
+                            del form.fields[fieldname]
+                    elif action == ACTIONS.REPLACE:
+                        pass  # replace is the default action
+                else:
+                    ACTIONS = MassOptionsForField.CHARFIELD_ACTIONS
+                    if action == ACTIONS.PREPEND:
+                        form.data[fieldname] = form.data[fieldname] + getattr(obj, fieldname, '')
+                    elif action == ACTIONS.APPEND:
+                        form.data[fieldname] = getattr(obj, fieldname, '') + form.data[fieldname]
+                    elif action == ACTIONS.DEFINE:
+                        if getattr(obj, fieldname, ''):
+                            # if obj has already a value for this
+                            # field, don't handle mass change for it
+                            del form.fields[fieldname]
+                    elif action == ACTIONS.REPLACE:
+                        pass  # replace is the default action
