@@ -4,6 +4,16 @@ from .boats.models import Boat
 from .base import BaseTest
 
 
+class GenericTest(BaseTest):
+
+    def test_that_nothing_is_modified_if_nothing_checked(self):
+        b1 = self.F.Boat(name="Pen Duick", rigging=Boat.KETCH)
+        form = self.get_massadmin_form(b1)
+        form.submit().follow()
+        self.assertEqual(Boat.objects.get(pk=b1.pk).name, b1.name_action)
+        self.assertEqual(Boat.objects.get(pk=b1.pk).rigging, b1.rigging)
+
+
 class CharFieldTest(BaseTest):
 
     def test_define_only_if_empty(self):
