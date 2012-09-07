@@ -10,7 +10,7 @@ class GenericTest(BaseTest):
         b1 = self.F.Boat(name="Pen Duick", rigging=Boat.KETCH)
         form = self.get_massadmin_form(b1)
         form.submit().follow()
-        self.assertEqual(Boat.objects.get(pk=b1.pk).name, b1.name_action)
+        self.assertEqual(Boat.objects.get(pk=b1.pk).name, b1.name)
         self.assertEqual(Boat.objects.get(pk=b1.pk).rigging, b1.rigging)
 
 
@@ -87,3 +87,30 @@ class ChoicesFieldTest(BaseTest):
         self.assertEqual(Boat.objects.get(pk=b1.pk).rigging, Boat.KETCH)
         self.assertEqual(Boat.objects.get(pk=b2.pk).rigging, Boat.KETCH)
         self.assertEqual(Boat.objects.get(pk=b3.pk).rigging, Boat.SLOOP)
+
+
+class ForeignKeyTest(BaseTest):
+
+    def test_no_action_available(self):
+        # append, prepend, etc. makes no sense for a foreignkey
+        b1 = self.F.Boat(name="Pen Duick")
+        b2 = self.F.Boat(name="Pen Duick II")
+        form = self.get_massadmin_form(b1, b2)
+        self.assertTrue("_mass_change_captain_action" not in form.fields)
+
+    def test_replace_foreignkey(self):
+        c1 = self.F.Captain()
+        c2 = self.F.Captain()
+        c3 = self.F.Captain()
+        b1 = self.F.Boat(captain=c1)
+        b2 = self.F.Boat(captain=c2)
+        b3 = self.F.Boat(captain=c1)  # Will not be edited
+        # test Boats previous values
+        self.assertEqual(Boat.objects.get(pk=b1.pk).captain, b1.captain)
+        self.assertEqual(Boat.objects.get(pk=b2.pk).captain, b2.captain)
+        form = self.get_massadmin_form(b1, b2)
+        self.update_form(form, captain=c3.pk)
+        form.submit().follow()
+        self.assertEqual(Boat.objects.get(pk=b1.pk).captain, c3)
+        self.assertEqual(Boat.objects.get(pk=b2.pk).captain, c3)
+        self.assertEqual(Boat.objects.get(pk=b3.pk).captain, c1)
