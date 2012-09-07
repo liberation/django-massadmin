@@ -30,6 +30,7 @@ class MassOptionsForField(forms.Form):
     in the extra kwargs.
     """
     CHARFIELD_ACTIONS = CHARFIELD_ACTIONS
+
     def __init__(self, *args, **kwargs):
         self.model_field_name = kwargs.pop('field_name')
         self.model_field = kwargs.pop('field', None)
