@@ -37,6 +37,7 @@ from django.conf.urls.defaults import patterns, url
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db import models
 from django.contrib.admin import helpers
 from django.utils.translation import ugettext as _
 from django.utils.encoding import force_unicode
@@ -176,18 +177,28 @@ class MassAdmin(admin.ModelAdmin):
                             # responsible for *using* and cleaning POST data)
                             form.data = deepcopy(form.data)
                             for fieldname, action in special_handled_fields.items():
-                                ACTIONS = MassOptionsForField.CHARFIELD_ACTIONS
-                                if action == ACTIONS.PREPEND:
-                                    form.data[fieldname] = form.data[fieldname] + getattr(obj, fieldname, '')
-                                elif action == ACTIONS.APPEND:
-                                    form.data[fieldname] = getattr(obj, fieldname, '') + form.data[fieldname]
-                                elif action == ACTIONS.DEFINE:
-                                    if getattr(obj, fieldname, ''):
-                                        # if obj has already a value for this
-                                        # field, don't handle mass change for it
-                                        del form.fields[fieldname]
-                                elif action == ACTIONS.REPLACE:
-                                    pass  # replace is the default action
+                                if isinstance(obj._meta.get_field_by_name(fieldname)[0], models.ManyToManyField):
+                                    ACTIONS = MassOptionsForField.MULTI_ACTIONS
+                                    if action == ACTIONS.ADD:
+                                        pass  # what to do?
+                                    elif action == ACTIONS.DEFINE:
+                                        if getattr(obj, fieldname).all():
+                                            del form.fields[fieldname]
+                                    elif action == ACTIONS.REPLACE:
+                                        pass  # replace is the default action
+                                else:
+                                    ACTIONS = MassOptionsForField.CHARFIELD_ACTIONS
+                                    if action == ACTIONS.PREPEND:
+                                        form.data[fieldname] = form.data[fieldname] + getattr(obj, fieldname, '')
+                                    elif action == ACTIONS.APPEND:
+                                        form.data[fieldname] = getattr(obj, fieldname, '') + form.data[fieldname]
+                                    elif action == ACTIONS.DEFINE:
+                                        if getattr(obj, fieldname, ''):
+                                            # if obj has already a value for this
+                                            # field, don't handle mass change for it
+                                            del form.fields[fieldname]
+                                    elif action == ACTIONS.REPLACE:
+                                        pass  # replace is the default action
 
                         if form.is_valid():
                             form_validated = True

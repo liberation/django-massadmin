@@ -139,6 +139,23 @@ class ForeignKeyTest(BaseTest):
 
 class ManyToManyFieldTest(BaseTest):
 
+    def test_define_only_if_empty(self):
+        c1 = self.F.Captain()
+        c2 = self.F.Captain()
+        c3 = self.F.Captain()
+        b1 = self.F.Boat(captain=c1, previous_captains=[c2])
+        b2 = self.F.Boat(captain=c2)
+        b3 = self.F.Boat(captain=c1, previous_captains=[c3])  # Will not be edited
+        # test Boats previous values
+        self.assertEqual(Boat.objects.get(pk=b1.pk).captain, b1.captain)
+        self.assertEqual(Boat.objects.get(pk=b2.pk).captain, b2.captain)
+        form = self.get_massadmin_form(b1, b2)
+        self.update_form(form, previous_captains=[c3.pk, c2.pk], previous_captains_action="define")
+        form.submit().follow()
+        self.assertEqual(set(Boat.objects.get(pk=b1.pk).previous_captains.all()), set([c2]))
+        self.assertEqual(set(Boat.objects.get(pk=b2.pk).previous_captains.all()), set([c3, c2]))
+        self.assertEqual(set(Boat.objects.get(pk=b3.pk).previous_captains.all()), set([c3]))
+
     def test_replace_manytomany(self):
         c1 = self.F.Captain()
         c2 = self.F.Captain()
@@ -150,7 +167,7 @@ class ManyToManyFieldTest(BaseTest):
         self.assertEqual(Boat.objects.get(pk=b1.pk).captain, b1.captain)
         self.assertEqual(Boat.objects.get(pk=b2.pk).captain, b2.captain)
         form = self.get_massadmin_form(b1, b2)
-        self.update_form(form, previous_captains=[c3.pk, c2.pk])
+        self.update_form(form, previous_captains=[c3.pk, c2.pk], previous_captains_action="replace")
         form.submit().follow()
         self.assertEqual(set(Boat.objects.get(pk=b1.pk).previous_captains.all()), set([c3, c2]))
         self.assertEqual(set(Boat.objects.get(pk=b2.pk).previous_captains.all()), set([c3, c2]))

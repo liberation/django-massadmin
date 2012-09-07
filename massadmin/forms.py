@@ -13,6 +13,12 @@ CHARFIELD_ACTIONS = Choices(
     ('APPEND', 'append', _('Add after'))
 )
 
+MULTI_ACTIONS = Choices(
+    ('DEFINE', 'define', _('Define (if empty)')),
+    ('REPLACE', 'replace', _('Replace')),
+    ('ADD', 'add', _('Add')),
+)
+
 
 class MassOptionsForField(forms.Form):
     """
@@ -30,6 +36,7 @@ class MassOptionsForField(forms.Form):
     in the extra kwargs.
     """
     CHARFIELD_ACTIONS = CHARFIELD_ACTIONS
+    MULTI_ACTIONS = MULTI_ACTIONS
 
     def __init__(self, *args, **kwargs):
         self.model_field_name = kwargs.pop('field_name')
@@ -51,7 +58,13 @@ class MassOptionsForField(forms.Form):
                 # key for this field in POST data. We will then be able to
                 # alter it dynamically (as a raw string) *before*
                 # submitting it to ModelForm.
-                self.fields[mass_field_name + '_action'] = forms.ChoiceField(choices=CHARFIELD_ACTIONS, label=_('Advanced operations'))
+                choices = CHARFIELD_ACTIONS
+            elif isinstance(self.model_field, forms.ModelMultipleChoiceField):
+                choices = MULTI_ACTIONS
+            else:
+                choices = None
+            if choices:
+                self.fields[mass_field_name + '_action'] = forms.ChoiceField(choices=choices, label=_('Advanced operations'))
 
     def get_mass_field_name(self):
         return '_mass_change_' + self.model_field_name
