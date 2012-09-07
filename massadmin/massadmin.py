@@ -43,7 +43,6 @@ from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from django.template.defaultfilters import pluralize
 from django.http import HttpResponseRedirect
-from django.contrib.contenttypes.models import ContentType
 from django import  template
 from django.shortcuts import render_to_response
 from django.forms.formsets import all_valid
@@ -51,6 +50,7 @@ from django.forms.formsets import all_valid
 from forms import MassOptionsForField
 
 import sys
+
 
 class MassAdmin(admin.ModelAdmin):
     actions = ['mass_change_selected']
@@ -87,7 +87,7 @@ class MassAdmin(admin.ModelAdmin):
         next = request.GET.get('next', '../../')
 
         return HttpResponseRedirect(next)
-                        		
+
     def render_mass_change_form(self, request, context, obj=None):
         opts = self.model._meta
         app_label = opts.app_label
@@ -111,7 +111,7 @@ class MassAdmin(admin.ModelAdmin):
             "admin/%s/mass_change_form.html" % app_label,
             "admin/mass_change_form.html"
         ], context, context_instance=context_instance)
-        
+
     def get_mass_form(self, request, obj=None):
         return self.get_form(request, obj)
 
@@ -120,10 +120,10 @@ class MassAdmin(admin.ModelAdmin):
         model = self.model
         opts = model._meta
         general_error = None
-                        		
+
         object_ids = object_ids.split(',')
 
-        if not self.has_change_permission(request, None): # FIXME: use a specific permission for mass_change
+        if not self.has_change_permission(request, None):  # FIXME: use a specific permission for mass_change
             raise PermissionDenied
 
         ModelForm = self.get_mass_form(request)
@@ -153,14 +153,14 @@ class MassAdmin(admin.ModelAdmin):
                         exclude_fields.append(fieldname)
                 else:
                     raise Exception('Mass options for field %s are not valid: %s ' % (fieldname, mass_options_form.errors))
-            
+
             # commit only when all forms are valid
             with transaction.commit_manually():
                 try:
                     objects_count = 0
                     changed_count = 0
 
-                    objects = self.queryset(request).filter(pk__in = object_ids)
+                    objects = self.queryset(request).filter(pk__in=object_ids)
                     for obj in objects:
                         objects_count += 1
                         form = ModelForm(request.POST, request.FILES, instance=obj)
@@ -187,8 +187,8 @@ class MassAdmin(admin.ModelAdmin):
                                         # field, don't handle mass change for it
                                         del form.fields[fieldname]
                                 elif action == ACTIONS.REPLACE:
-                                    pass # replace is the default action
-                            
+                                    pass  # replace is the default action
+
                         if form.is_valid():
                             form_validated = True
                             new_object = self.save_form(request, form, change=True)
@@ -202,7 +202,7 @@ class MassAdmin(admin.ModelAdmin):
                             prefixes[prefix] = prefixes.get(prefix, 0) + 1
                             if prefixes[prefix] != 1:
                                 prefix = "%s-%s" % (prefix, prefixes[prefix])
-                                
+
                             # Check if inline formset has been selected for
                             # mass change. If it is the case, store it
                             # for later use
@@ -221,20 +221,20 @@ class MassAdmin(admin.ModelAdmin):
                             form.save_m2m()
                             for formset in formsets:
                                 self.save_formset(request, form, formset, change=True)
-                                                
+
                             change_message = self.construct_change_message(request, form, formsets)
                             self.log_change(request, new_object, change_message)
                             changed_count += 1
-                            
+
                     if changed_count != objects_count:
                         raise Exception('Some of the selected objects could\'t be changed.')
-                    transaction.commit()    
+                    transaction.commit()
                     return self.response_mass_change(request, new_object)
-                    
+
                 finally:
                     general_error = unicode(sys.exc_info()[1])
                     transaction.rollback()
-                    
+
         form = ModelForm()
         prefixes = {}
         for FormSet in self.get_formsets(request):
@@ -247,7 +247,7 @@ class MassAdmin(admin.ModelAdmin):
 
         adminForm = helpers.AdminForm(form, self.get_fieldsets(request), self.prepopulated_fields, self.get_readonly_fields(request))
         media = self.media + adminForm.media
-        
+
         # We don't want the user trying to mass change unique fields!
         unique_fields = []
         for field_name in model._meta.get_all_field_names():
@@ -255,8 +255,9 @@ class MassAdmin(admin.ModelAdmin):
                 field = model._meta.get_field(field_name)
                 if field.unique:
                     unique_fields.append(field_name)
-            except: pass
-        
+            except:
+                pass
+
         inline_admin_formsets = []
         for inline, formset in zip(self.inline_instances, formsets):
             fieldsets = list(inline.get_fieldsets(request))
