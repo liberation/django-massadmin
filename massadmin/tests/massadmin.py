@@ -53,3 +53,27 @@ class CharFieldTest(BaseTest):
         self.assertEqual(Boat.objects.get(pk=b1.pk).name, "Pen Duick")
         self.assertEqual(Boat.objects.get(pk=b2.pk).name, "Pen Duick")
         self.assertEqual(Boat.objects.get(pk=b3.pk).name, "Pen Duick")
+
+
+class ChoicesFieldTest(BaseTest):
+
+    def test_no_action_available(self):
+        # append, prepend, etc. makes no sense for a choice field
+        b1 = self.F.Boat(name="Pen Duick")
+        b2 = self.F.Boat(name="Pen Duick II")
+        form = self.get_massadmin_form(b1, b2)
+        self.assertTrue("_mass_change_rigging_action" not in form.fields)
+
+    def test_replace_select(self):
+        b1 = self.F.Boat()
+        b2 = self.F.Boat(rigging=Boat.CUTTER)
+        b3 = self.F.Boat()  # Will not be edited
+        # test Boats previous values
+        self.assertEqual(Boat.objects.get(pk=b1.pk).rigging, Boat.SLOOP)
+        self.assertEqual(Boat.objects.get(pk=b2.pk).rigging, Boat.CUTTER)
+        form = self.get_massadmin_form(b1, b2)
+        self.update_form(form, rigging=Boat.KETCH)
+        form.submit().follow()
+        self.assertEqual(Boat.objects.get(pk=b1.pk).rigging, Boat.KETCH)
+        self.assertEqual(Boat.objects.get(pk=b2.pk).rigging, Boat.KETCH)
+        self.assertEqual(Boat.objects.get(pk=b3.pk).rigging, Boat.SLOOP)

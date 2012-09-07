@@ -12,9 +12,21 @@ class Captain(models.Model):
 
 
 class Boat(models.Model):
+    SLOOP = 1
+    CUTTER = 2
+    KETCH = 3
+    SCHOONER = 4
+    RIGGING = (
+        (SLOOP, 'sloop'),
+        (CUTTER, 'cutter'),
+        (KETCH, 'ketch'),
+        (SCHOONER, 'shooner'),
+    )
+
     name = models.CharField(max_length=100)
     architect = models.CharField(max_length=100, null=True, blank=True)
     length = models.FloatField()
+    rigging = models.SmallIntegerField(choices=RIGGING, default=SLOOP)
 
     captain = models.ForeignKey(Captain, related_name="boat")
 
