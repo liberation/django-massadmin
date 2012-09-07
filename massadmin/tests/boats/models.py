@@ -1,0 +1,53 @@
+import datetime
+
+from django.db import models
+from django.contrib import admin
+
+from massadmin.massadmin import MassAdmin
+
+
+class Captain(models.Model):
+    name = models.CharField(max_length=100)
+    birthday = models.DateField()
+
+
+class Boat(models.Model):
+    name = models.CharField(max_length=100)
+    architect = models.CharField(max_length=100, null=True, blank=True)
+    length = models.FloatField()
+
+    captain = models.ForeignKey(Captain, related_name="boat")
+
+    previous_captains = models.ManyToManyField(Captain, related_name="previous_boats")
+
+
+class BoatAdmin(MassAdmin):
+    pass
+admin.site.register(Boat, BoatAdmin)
+
+
+class Factory(object):
+
+    def Boat(self, **kwargs):
+        defaults = {
+            "name": "Boat from factory",
+            "length": 10
+        }
+        defaults.update(kwargs)
+        if not "captain" in defaults:
+            defaults.update({
+                'captain': self.Captain()
+            })
+        d = Boat(**defaults)
+        d.save()
+        return d
+
+    def Captain(self, **kwargs):
+        defaults = {
+            "name": "Captain from factory",
+            "birthday": datetime.datetime(1966, 3, 21)
+        }
+        defaults.update(kwargs)
+        c = Captain(**defaults)
+        c.save()
+        return c
