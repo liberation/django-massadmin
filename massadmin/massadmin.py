@@ -180,7 +180,10 @@ class MassAdmin(admin.ModelAdmin):
                                 if isinstance(obj._meta.get_field_by_name(fieldname)[0], models.ManyToManyField):
                                     ACTIONS = MassOptionsForField.MULTI_ACTIONS
                                     if action == ACTIONS.ADD:
-                                        pass  # what to do?
+                                        for val in form.initial[fieldname]:
+                                            val = unicode(val)  # Form values are always string, not int
+                                            if not val in form.data.getlist(fieldname):
+                                                form.data.appendlist(fieldname, val)
                                     elif action == ACTIONS.DEFINE:
                                         if getattr(obj, fieldname).all():
                                             del form.fields[fieldname]
