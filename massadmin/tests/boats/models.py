@@ -50,9 +50,12 @@ class Factory(object):
             defaults.update({
                 'captain': self.Captain()
             })
-        d = Boat(**defaults)
-        d.save()
-        return d
+        previous_captains = defaults.pop("previous_captains", [])
+        b = Boat(**defaults)
+        b.save()
+        if previous_captains:
+            b.previous_captains.add(*previous_captains)
+        return b
 
     def Captain(self, **kwargs):
         defaults = {
