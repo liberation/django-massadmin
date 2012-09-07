@@ -89,6 +89,27 @@ class ChoicesFieldTest(BaseTest):
         self.assertEqual(Boat.objects.get(pk=b3.pk).rigging, Boat.SLOOP)
 
 
+class FloatFieldTest(BaseTest):
+
+    def test_no_action_available(self):
+        # append, prepend, etc., makes no sense for a float field
+        b1 = self.F.Boat()
+        b2 = self.F.Boat()
+        form = self.get_massadmin_form(b1, b2)
+        self.assertTrue("_mass_change_length_action" not in form.fields)
+
+    def test_replace_floatfield(self):
+        b1 = self.F.Boat()
+        b2 = self.F.Boat()
+        b3 = self.F.Boat()  # Will not be edited
+        form = self.get_massadmin_form(b1, b2)
+        self.update_form(form, length=13.2)
+        form.submit().follow()
+        self.assertEqual(Boat.objects.get(pk=b1.pk).length, 13.2)
+        self.assertEqual(Boat.objects.get(pk=b2.pk).length, 13.2)
+        self.assertEqual(Boat.objects.get(pk=b3.pk).length, b3.length)
+
+
 class ForeignKeyTest(BaseTest):
 
     def test_no_action_available(self):
