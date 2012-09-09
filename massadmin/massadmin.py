@@ -280,25 +280,46 @@ class MassAdmin(admin.ModelAdmin):
         if isinstance(obj._meta.get_field_by_name(fieldname)[0], models.ManyToManyField):
             ACTIONS = self.mass_actions_options_form.MULTI_ACTIONS
             if action == ACTIONS.ADD:
-                for val in form.initial[fieldname]:
-                    val = unicode(val)  # Form values are always string, not int
-                    if not val in form.data.getlist(fieldname):
-                        form.data.appendlist(fieldname, val)
+                self._handle_action_add_m2m(fieldname, action, form, obj)
             elif action == ACTIONS.DEFINE:
-                if getattr(obj, fieldname).all():
-                    del form.fields[fieldname]
+                self._handle_action_define_m2m(fieldname, action, form, obj)
             elif action == ACTIONS.REPLACE:
-                pass  # replace is the default action
+                self._handle_action_replace_m2m(fieldname, action, form, obj)
         else:
             ACTIONS = self.mass_actions_options_form.CHARFIELD_ACTIONS
             if action == ACTIONS.PREPEND:
-                form.data[fieldname] = form.data[fieldname] + getattr(obj, fieldname, '')
+                self._handle_action_prepend(fieldname, action, form, obj)
             elif action == ACTIONS.APPEND:
-                form.data[fieldname] = getattr(obj, fieldname, '') + form.data[fieldname]
+                self._handle_action_append(fieldname, action, form, obj)
             elif action == ACTIONS.DEFINE:
-                if getattr(obj, fieldname, ''):
-                    # if obj has already a value for this
-                    # field, don't handle mass change for it
-                    del form.fields[fieldname]
+                self._handle_action_define(fieldname, action, form, obj)
             elif action == ACTIONS.REPLACE:
-                pass  # replace is the default action
+                self._handle_action_replace(fieldname, action, form, obj)
+
+    def _handle_action_prepend(self, fieldname, action, form, obj):
+        form.data[fieldname] = form.data[fieldname] + getattr(obj, fieldname, '')
+
+    def _handle_action_append(self, fieldname, action, form, obj):
+        form.data[fieldname] = getattr(obj, fieldname, '') + form.data[fieldname]
+
+    def _handle_action_define(self, fieldname, action, form, obj):
+        if getattr(obj, fieldname, ''):
+            # if obj has already a value for this
+            # field, don't handle mass change for it
+            del form.fields[fieldname]
+
+    def _handle_action_replace(self, fieldname, action, form, obj):
+        pass  # replace is the default action
+
+    def _handle_action_add_m2m(self, fieldname, action, form, obj):
+        for val in form.initial[fieldname]:
+            val = unicode(val)  # Form values are always string, not int
+            if not val in form.data.getlist(fieldname):
+                form.data.appendlist(fieldname, val)
+
+    def _handle_action_define_m2m(self, fieldname, action, form, obj):
+        if getattr(obj, fieldname).all():
+            del form.fields[fieldname]
+
+    def _handle_action_replace_m2m(self, fieldname, action, form, obj):
+        pass  # replace is the default action
