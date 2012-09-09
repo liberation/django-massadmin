@@ -48,9 +48,9 @@ class MassOptionsForField(forms.Form):
         # Always create an "activate mass change" checkbox
         self.fields[mass_field_name] = forms.BooleanField(required=False, label=_('Mass change'))
 
-        self.create_actions_field()
+        self._create_actions_options()
 
-    def create_actions_field(self):
+    def _create_actions_options(self):
         """
         If a real field has been given (i.e. not an inline), optionally
         add mass change options (prepend, append, etc.) according
@@ -58,19 +58,28 @@ class MassOptionsForField(forms.Form):
         """
         if self.model_field is not None:
             mass_field_name = self.get_mass_field_name()
-            if isinstance(self.model_field, forms.CharField) and not isinstance(self.model_field.widget, widgets.MultiWidget):
-                # If field is a CharField subclass and its widget is not a
-                # MultiWidget subclass, we can assume there will be *only one*
-                # key for this field in POST data. We will then be able to
-                # alter it dynamically (as a raw string) *before*
-                # submitting it to ModelForm.
-                choices = self.CHARFIELD_ACTIONS
-            elif isinstance(self.model_field, forms.ModelMultipleChoiceField):
-                choices = self.MULTI_ACTIONS
-            else:
-                choices = None
+            choices = self.get_actions_choices()
             if choices:
                 self.fields[mass_field_name + '_action'] = forms.ChoiceField(choices=choices, label=_('Advanced operations'))
+
+    def get_actions_choices(self):
+        """
+        Return an extended_choices instance with the available choices
+        for the current field.
+        Return None if no choice is available.
+        """
+        if isinstance(self.model_field, forms.CharField) and not isinstance(self.model_field.widget, widgets.MultiWidget):
+            # If field is a CharField subclass and its widget is not a
+            # MultiWidget subclass, we can assume there will be *only one*
+            # key for this field in POST data. We will then be able to
+            # alter it dynamically (as a raw string) *before*
+            # submitting it to ModelForm.
+            choices = self.CHARFIELD_ACTIONS
+        elif isinstance(self.model_field, forms.ModelMultipleChoiceField):
+            choices = self.MULTI_ACTIONS
+        else:
+            choices = None
+        return choices
 
     def get_mass_field_name(self):
         return '_mass_change_' + self.model_field_name
