@@ -14,8 +14,12 @@ def render_mass_options_for_field(context, field_name, field=None):
 
     If `field` is not given, it means `field_name` identifies an inline.
     """
+    try:
+        mass_actions_options_form = context['mass_actions_options_form']
+    except KeyError:
+        mass_actions_options_form = MassOptionsForField
 
-    form = MassOptionsForField(field_name=field_name, field=field)
+    form = mass_actions_options_form(field_name=field_name, field=field)
 
     return {
         'form': form

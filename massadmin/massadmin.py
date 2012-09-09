@@ -269,6 +269,7 @@ class MassAdmin(admin.ModelAdmin):
             'root_path': self.admin_site.root_path,
             'app_label': opts.app_label,
             'object_ids': ",".join(object_ids),
+            'mass_actions_options_form': self.mass_actions_options_form,
         }
         context.update(extra_context or {})
         return self.render_mass_change_form(request, context)
