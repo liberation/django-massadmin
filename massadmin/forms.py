@@ -48,19 +48,25 @@ class MassOptionsForField(forms.Form):
         # Always create an "activate mass change" checkbox
         self.fields[mass_field_name] = forms.BooleanField(required=False, label=_('Mass change'))
 
+        self.create_actions_field()
+
+    def create_actions_field(self):
+        """
+        If a real field has been given (i.e. not an inline), optionally
+        add mass change options (prepend, append, etc.) according
+        to field type and field widget
+        """
         if self.model_field is not None:
-            # If a real field has been given (i.e. not an inline), optionally
-            # add mass change options (prepend, append, etc.) according
-            # to field type and field widget
+            mass_field_name = self.get_mass_field_name()
             if isinstance(self.model_field, forms.CharField) and not isinstance(self.model_field.widget, widgets.MultiWidget):
                 # If field is a CharField subclass and its widget is not a
                 # MultiWidget subclass, we can assume there will be *only one*
                 # key for this field in POST data. We will then be able to
                 # alter it dynamically (as a raw string) *before*
                 # submitting it to ModelForm.
-                choices = CHARFIELD_ACTIONS
+                choices = self.CHARFIELD_ACTIONS
             elif isinstance(self.model_field, forms.ModelMultipleChoiceField):
-                choices = MULTI_ACTIONS
+                choices = self.MULTI_ACTIONS
             else:
                 choices = None
             if choices:
