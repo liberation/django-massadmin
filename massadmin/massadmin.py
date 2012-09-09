@@ -56,6 +56,7 @@ import sys
 class MassAdmin(admin.ModelAdmin):
     actions = ['mass_change_selected']
     mass_change_form_template = None
+    mass_actions_options_form = MassOptionsForField
 
     def get_urls(self):
         urls = super(MassAdmin, self).get_urls()
@@ -142,7 +143,7 @@ class MassAdmin(admin.ModelAdmin):
             exclude_fields = []
             special_handled_fields = {}  # format -- {'<field name>': '<action>'}
             for fieldname, field in ModelForm.base_fields.items():
-                mass_options_form = MassOptionsForField(data=request.POST, field=field, field_name=fieldname)
+                mass_options_form = self.mass_actions_options_form(data=request.POST, field=field, field_name=fieldname)
                 if mass_options_form.is_valid():
                     mass_field_name = mass_options_form.get_mass_field_name()
                     handle_mass_change = mass_options_form.cleaned_data.get(mass_field_name, False)
@@ -188,7 +189,7 @@ class MassAdmin(admin.ModelAdmin):
                             # Check if inline formset has been selected for
                             # mass change. If it is the case, store it
                             # for later use
-                            mass_options_form = MassOptionsForField(data=request.POST, field_name=prefix)
+                            mass_options_form = self.mass_actions_options_form(data=request.POST, field_name=prefix)
                             if mass_options_form.is_valid():
                                 mass_field_name = mass_options_form.get_mass_field_name()
                                 handle_mass_change = mass_options_form.cleaned_data.get(mass_field_name, False)
@@ -276,7 +277,7 @@ class MassAdmin(admin.ModelAdmin):
             form.data = deepcopy(form.data)
             for fieldname, action in special_handled_fields.items():
                 if isinstance(obj._meta.get_field_by_name(fieldname)[0], models.ManyToManyField):
-                    ACTIONS = MassOptionsForField.MULTI_ACTIONS
+                    ACTIONS = self.mass_actions_options_form.MULTI_ACTIONS
                     if action == ACTIONS.ADD:
                         for val in form.initial[fieldname]:
                             val = unicode(val)  # Form values are always string, not int
@@ -288,7 +289,7 @@ class MassAdmin(admin.ModelAdmin):
                     elif action == ACTIONS.REPLACE:
                         pass  # replace is the default action
                 else:
-                    ACTIONS = MassOptionsForField.CHARFIELD_ACTIONS
+                    ACTIONS = self.mass_actions_options_form.CHARFIELD_ACTIONS
                     if action == ACTIONS.PREPEND:
                         form.data[fieldname] = form.data[fieldname] + getattr(obj, fieldname, '')
                     elif action == ACTIONS.APPEND:
