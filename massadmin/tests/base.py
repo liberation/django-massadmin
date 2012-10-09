@@ -23,7 +23,8 @@ class BaseTest(WebTest):
         info = Boat._meta.app_label, Boat._meta.module_name
         selected = ','.join(str(i.pk) for i in instances)
         massadmin_url = reverse('admin:%s_%s_massadmin' % info, args=(selected,), )
-        return self.app.get(massadmin_url, user=self.user).forms['boat_form']
+        response = self.app.get(massadmin_url, user=self.user)
+        return response.forms['boat_form']
 
     def update_form(self, form, **kwargs):
         """
@@ -42,6 +43,23 @@ class BaseTest(WebTest):
             if action in kwargs:
                 # A non default action is requested
                 form['_mass_change_%s_action' % field_name] = kwargs[action]
+
+    def update_inlines(self, form, **kwargs):
+        """
+        Each kwarg must have this structure:
+        fieldname: [
+            {
+                inline_field_name_a: inline_field_value,
+                inline_field_name_b: inline_field_value,
+            },
+            ... (one dict by inline to create)
+        ]
+        """
+        for field_name, inline_kargs_set in kwargs.iteritems():
+            form['_mass_change_%s_set' % field_name].checked = True
+            for idx, inline_kargs in enumerate(inline_kargs_set):
+                for inline_field_name, inline_field_value in inline_kargs.iteritems():
+                    form['%s_set-%s-%s' % (field_name, idx, inline_field_name)] = inline_field_value
 
     def _pre_setup(self):
         """

@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+try:
+    from django.test.utils import override_settings
+except ImportError:
+    from override_settings import override_settings
+
 from .boats.models import Boat
 from .base import BaseTest
 
@@ -135,3 +140,100 @@ class ForeignKeyTest(BaseTest):
         self.assertEqual(Boat.objects.get(pk=b1.pk).captain, c3)
         self.assertEqual(Boat.objects.get(pk=b2.pk).captain, c3)
         self.assertEqual(Boat.objects.get(pk=b3.pk).captain, c1)
+
+
+class ManyToManyFieldTest(BaseTest):
+
+    def test_actions_select_available(self):
+        b1 = self.F.Boat(name="Pen Duick")
+        b2 = self.F.Boat(name="Pen Duick II")
+        form = self.get_massadmin_form(b1, b2)
+        self.assertTrue("_mass_change_previous_captains_action" in form.fields)
+
+    def test_define_only_if_empty(self):
+        c1 = self.F.Captain()
+        c2 = self.F.Captain()
+        c3 = self.F.Captain()
+        b1 = self.F.Boat(captain=c1, previous_captains=[c2])
+        b2 = self.F.Boat(captain=c2)
+        b3 = self.F.Boat(captain=c1, previous_captains=[c3])  # Will not be edited
+        # test Boats previous values
+        self.assertEqual(Boat.objects.get(pk=b1.pk).captain, b1.captain)
+        self.assertEqual(Boat.objects.get(pk=b2.pk).captain, b2.captain)
+        form = self.get_massadmin_form(b1, b2)
+        self.update_form(form, previous_captains=[c3.pk, c2.pk])
+        form.submit().follow()
+        self.assertEqual(set(Boat.objects.get(pk=b1.pk).previous_captains.all()), set([c2]))
+        self.assertEqual(set(Boat.objects.get(pk=b2.pk).previous_captains.all()), set([c3, c2]))
+        self.assertEqual(set(Boat.objects.get(pk=b3.pk).previous_captains.all()), set([c3]))
+
+    def test_replace_manytomany(self):
+        c1 = self.F.Captain()
+        c2 = self.F.Captain()
+        c3 = self.F.Captain()
+        b1 = self.F.Boat(captain=c1, previous_captains=[c2])
+        b2 = self.F.Boat(captain=c2)
+        b3 = self.F.Boat(captain=c1, previous_captains=[c3])  # Will not be edited
+        # test Boats previous values
+        self.assertEqual(Boat.objects.get(pk=b1.pk).captain, b1.captain)
+        self.assertEqual(Boat.objects.get(pk=b2.pk).captain, b2.captain)
+        form = self.get_massadmin_form(b1, b2)
+        self.update_form(form, previous_captains=[c3.pk, c2.pk], previous_captains_action="replace")
+        form.submit().follow()
+        self.assertEqual(set(Boat.objects.get(pk=b1.pk).previous_captains.all()), set([c3, c2]))
+        self.assertEqual(set(Boat.objects.get(pk=b2.pk).previous_captains.all()), set([c3, c2]))
+        self.assertEqual(set(Boat.objects.get(pk=b3.pk).previous_captains.all()), set([c3]))
+
+    def test_add_manytomany(self):
+        c1 = self.F.Captain()
+        c2 = self.F.Captain()
+        c3 = self.F.Captain()
+        b1 = self.F.Boat(captain=c1, previous_captains=[c2])
+        b2 = self.F.Boat(captain=c2)
+        b3 = self.F.Boat(captain=c1, previous_captains=[c3])  # Will not be edited
+        # test Boats previous values
+        self.assertEqual(Boat.objects.get(pk=b1.pk).captain, b1.captain)
+        self.assertEqual(Boat.objects.get(pk=b2.pk).captain, b2.captain)
+        form = self.get_massadmin_form(b1, b2)
+        self.update_form(form, previous_captains=[c3.pk, c1.pk], previous_captains_action="add")
+        form.submit().follow()
+        self.assertEqual(set(Boat.objects.get(pk=b1.pk).previous_captains.all()), set([c3, c2, c1]))
+        self.assertEqual(set(Boat.objects.get(pk=b2.pk).previous_captains.all()), set([c3, c1]))
+        self.assertEqual(set(Boat.objects.get(pk=b3.pk).previous_captains.all()), set([c3]))
+
+
+@override_settings(DATE_INPUT_FORMATS=('%Y/%m/%d', ))
+class InlineTest(BaseTest):
+
+    def test_no_action_available(self):
+        b1 = self.F.Boat(name="Pen Duick")
+        b2 = self.F.Boat(name="Pen Duick II")
+        form = self.get_massadmin_form(b1, b2)
+        self.assertTrue("_mass_change_boattorace_set_action" not in form.fields)
+
+    def test_add(self):
+        """
+        `add` is the default action for inlines.
+        """
+        r1 = self.F.Race()
+        r2 = self.F.Race()
+        r3 = self.F.Race()
+        b1 = self.F.Boat(boattorace=[(r2, None)])
+        b2 = self.F.Boat()
+        b3 = self.F.Boat(boattorace=[(r3, None)])
+        form = self.get_massadmin_form(b1, b2)
+        boattorace = [
+            {
+                'race': r1.pk,
+                'victory_date': '1999/10/10'
+            },
+            {
+                'race': r3.pk,
+                'victory_date': '1977/10/10'
+            },
+        ]
+        self.update_inlines(form, boattorace=boattorace)
+        form.submit().follow()
+        self.assertEqual(set(Boat.objects.get(pk=b1.pk).win_races.all()), set([r1, r2, r3]))
+        self.assertEqual(set(Boat.objects.get(pk=b2.pk).win_races.all()), set([r1, r3]))
+        self.assertEqual(set(Boat.objects.get(pk=b3.pk).win_races.all()), set([r3]))
