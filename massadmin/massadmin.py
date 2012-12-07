@@ -104,7 +104,6 @@ class MassAdmin(admin.ModelAdmin):
             'ordered_objects': ordered_objects,
             'opts': opts,
             'save_on_top': self.save_on_top,
-            'root_path': self.admin_site.root_path,
             'onclick_attrib': (opts.get_ordered_objects() and change and 'onclick="submitOrderForm();"' or ''),
         })
         context_instance = template.RequestContext(request, current_app=self.admin_site.name)
@@ -266,7 +265,6 @@ class MassAdmin(admin.ModelAdmin):
             'inline_admin_formsets': inline_admin_formsets,
             'errors': helpers.AdminErrorList(form, formsets),
             'general_error': general_error,
-            'root_path': self.admin_site.root_path,
             'app_label': opts.app_label,
             'object_ids': ",".join(object_ids),
             'mass_actions_options_form': self.mass_actions_options_form,
