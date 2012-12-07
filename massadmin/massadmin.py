@@ -249,7 +249,9 @@ class MassAdmin(admin.ModelAdmin):
                 pass
 
         inline_admin_formsets = []
-        for inline, formset in zip(self.inline_instances, formsets):
+
+        inlines_instances = getattr(self, 'inline_instances', self.get_inline_instances(request))
+        for inline, formset in zip(inlines_instances, formsets):
             fieldsets = list(inline.get_fieldsets(request))
             inline_admin_formset = helpers.InlineAdminFormSet(inline, formset, fieldsets)
             inline_admin_formsets.append(inline_admin_formset)
