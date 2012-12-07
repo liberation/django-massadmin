@@ -67,7 +67,8 @@ class BaseTest(WebTest):
         From http://stackoverflow.com/a/2672444.
         """
         # Add the models to the db.
-        self._original_installed_apps = list(settings.INSTALLED_APPS)
+        self._original_installed_apps = settings.INSTALLED_APPS
+        settings.INSTALLED_APPS = list(settings.INSTALLED_APPS)
         for app in self.apps:
             settings.INSTALLED_APPS.append(app)
         loading.cache.loaded = False
