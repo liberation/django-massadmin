@@ -1,0 +1,8 @@
+include README
+include LICENSE
+recursive-include docs *
+recursive-include massadmin/fixtures *.json
+recursive-include massadmin/locale *
+recursive-include massadmin/static *
+recursive-include massadmin/templates *.txt *.html *.xml *.js
+prune docs/build
