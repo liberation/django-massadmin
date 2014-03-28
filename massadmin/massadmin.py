@@ -33,7 +33,7 @@ from copy import deepcopy
 import urllib
 
 from django.contrib import admin
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
