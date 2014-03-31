@@ -1,12 +1,12 @@
 {% extends "admin/base_site.html" %}
-{% load i18n admin_modify adminmedia massadmin_tags %}
+{% load i18n admin_modify admin_static massadmin_tags %}
 
 {% block extrahead %}{{ block.super }}
 <script type="text/javascript" src="../../../jsi18n/"></script>
 {{ media }}
 {% endblock %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}" />{% endblock %}
 
 {% block coltype %}{% if ordered_objects %}colMS{% else %}colM{% endif %}{% endblock %}
 
@@ -15,8 +15,8 @@
 {% block breadcrumbs %}{% if not is_popup %}
 <div id="breadcrumbs" class="breadcrumbs">
      <a href="../../../">{% trans "Home" %}</a> &rsaquo;
-     <a href="../../">{{ app_label|capfirst|escape }}</a> &rsaquo; 
-     {% if has_change_permission %}<a href="../../{{ opts.object_name.lower }}/">{{ opts.verbose_name_plural|capfirst }}</a>{% else %}{{ opts.verbose_name_plural|capfirst }}{% endif %} &rsaquo; 
+     <a href="../../">{{ app_label|capfirst|escape }}</a> &rsaquo;
+     {% if has_change_permission %}<a href="../../{{ opts.object_name.lower }}/">{{ opts.verbose_name_plural|capfirst }}</a>{% else %}{{ opts.verbose_name_plural|capfirst }}{% endif %} &rsaquo;
      {% trans "Mass change" %} {{ opts.verbose_name }}
 </div>
 {% endif %}{% endblock %}
